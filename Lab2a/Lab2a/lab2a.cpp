@@ -1,77 +1,69 @@
 
 #include <mpi.h>
 #include <iostream>
+#include <vector>
 #define MASTER 0
 
-int main(int argc, char *argv[])
+int numProcs;
+
+void verifyLab2a(const std::vector<int> input, int nrToSearch, int expectedPos)
 {
-    int procId, numProcs, arr[100], size, nr;
-    MPI_Status status;
-    MPI_Init(&argc, &argv);
-    MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
+    int procId;
     MPI_Comm_rank(MPI_COMM_WORLD, &procId);
+    std::vector<int> localInput;
 
     if (procId == MASTER)
     {
-        std::cout << "insert the size of the array: \n";
-        std::cin >> size;
-        std::cout << "size is : " << size << "\n";
-        for (int i = 0; i < size; i++)
-        {
-            std::cin >> arr[i];
-        }
-        std::cout << "The vector is : \n";
-        for (int i = 0; i < size; i++)
-        {
-            std::cout << arr[i];
-        }
-        std::cout << "\nThe number you want to search is : \n";
-        std::cin >> nr;
+        localInput = input;
+    }
+    else
+    {
+        localInput.resize(input.size());
     }
 
-    MPI_Bcast(&size, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
-    MPI_Bcast(&nr, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
-    MPI_Bcast(arr, size, MPI_INT, MASTER, MPI_COMM_WORLD);
+    MPI_Bcast(&localInput[0], localInput.size(), MPI_INT, MASTER, MPI_COMM_WORLD);
 
-    int avgProcSize = size / numProcs;
-    int start = procId * avgProcSize;
-    int end = start + avgProcSize;
-
+    int avgProcChunkSize = localInput.size() / numProcs;
+    int chunkStart = avgProcChunkSize * procId;
+    int chunkEnd = chunkStart + avgProcChunkSize;
     if (procId == numProcs - 1)
     {
-        end += size % numProcs;
+        chunkEnd += localInput.size() % numProcs;
     }
 
-    int maxPos = -1;
-    int found = false;
+    int localMaxPos = -1;
 
-    for (int i = end - 1; i >= start; i--)
+    for (int i = chunkEnd - 1; i >= chunkStart; i--)
     {
-        if (arr[i] == nr)
+        if (localInput[i] == nrToSearch)
         {
-            MPI_Reduce(&i, &maxPos, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
-            found = true;
+            localMaxPos = i;
             break;
         }
-    }   
-
-    if (found == false)
-    {
-        int i = -1;
-        MPI_Reduce(&i, &maxPos, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
     }
 
-    if (procId == 0)
+    int maxPos;
+    MPI_Reduce(&localMaxPos, &maxPos, 1, MPI_INT, MPI_MAX, MASTER, MPI_COMM_WORLD);
+    if (procId == MASTER)
     {
-        if (maxPos != -1)
-        {
-            std::cout << "the maximum position is : " << maxPos;
-        }
+        if (maxPos == expectedPos)
+            std::cout << "SUCCESS" << std::endl;
         else
-        {
-            std::cout << "the number does not exist";
-        }
+            std::cout << "FAIL" << std::endl;
     }
+}
 
+int main(int argc, char *argv[])
+{
+    MPI_Status status;
+    MPI_Init(&argc, &argv);
+    MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
+    
+    // Basic test.
+    verifyLab2a({ 1, 2, 3, 4 }, 3, 2);
+    // Chunks contains same item twice.
+    verifyLab2a({ 1, 1, 2, 3, 4, 5, 6, 7 }, 1, 1);
+    // Last chunk is bigger.
+    verifyLab2a({ 1, 2, 3, 4, 5 }, 5, 4);
     MPI_Finalize();
 }
