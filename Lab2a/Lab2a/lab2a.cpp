@@ -6,7 +6,7 @@
 
 int numProcs;
 
-void verifyLab2a(const std::vector<int> input, int nrToSearch, int expectedPos)
+void verifyLab2a(const std::vector<int> &input, int nrToSearch, int expectedPos)
 {
     int procId;
     MPI_Comm_rank(MPI_COMM_WORLD, &procId);
