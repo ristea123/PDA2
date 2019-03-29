@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <mpi.h>
 #include <iostream>
 #include <string>
@@ -55,17 +54,17 @@ void testLab3(const MPI_Aint &studentType, const std::vector<student> &input, co
         {
             if (founds[i] == true && expectedFound == true)
             {
-                std::cout << "SUCCESS";
+                std::cout << "SUCCESS" << std::endl;
                 return;
             }
         }
         if (expectedFound == false)
         {
-            std::cout << "SUCCESS";
+            std::cout << "SUCCESS" << std::endl;
         }
         else
         {
-            std::cout << "FAIL";
+            std::cout << "FAIL" << std::endl;
         }
     }
 }
@@ -86,12 +85,18 @@ void main(int argc, char *argv[])
     students.reserve(5);
 
     students.push_back(student(1, "Ristea1", "Stefan1"));
-    students.push_back(student(1, "Ristea2", "Stefan2"));
-    students.push_back(student(1, "Ristea3", "Stefan3"));
-    students.push_back(student(1, "Ristea4", "Stefan4"));
+    students.push_back(student(2, "Ristea2", "Stefan2"));
+    students.push_back(student(3, "Ristea3", "Stefan3"));
+    students.push_back(student(4, "Ristea45", "Stefan45"));
+    students.push_back(student(5, "Ristea6", "Stefan6"));
+    students.push_back(student(6, "Ristea7", "Stefan8"));
+    students.push_back(student(7, "Ristea9", "Stefan9"));
+    students.push_back(student(8, "Ristea10", "Stefan10"));
 
-    student stud(1, "Ristea4", "Stefan4");
+    student stud(4, "Ristea45", "Stefan45");
+    student stud1(1, "Ristea12", "Stefan12");
 
     testLab3(studentType, students, stud, true);
+    testLab3(studentType, students, stud1, false);
     MPI_Finalize();
 }
