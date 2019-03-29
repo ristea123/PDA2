@@ -4,14 +4,14 @@
 #include <string>
 #include <vector>
 
+int procId;
+int numProcs;
+
 void copy_string(char dest[10], std::string &source)
 {
     for (int i = 0; i < source.size(); i++)
         dest[i] = source[i];
 }
-
-int rank;
-int numProcs;
 
 bool cmp_chr_str(char dest[], std::string source)
 {
@@ -36,15 +36,18 @@ struct student
     {
         this->id = id;
         this->gpa = gpa;
-        memset(&name[0], 0, 10);
-        memset(&surname[0], 0, 10);
+        memset(&this->name[0], 0, 10);
+        memset(&this->surname[0], 0, 10);
+        
         copy_string(this->name, name);
         copy_string(this->surname, surname);
+        //std::cout << this->name << '-' << name << std::endl;
     };
     student() {};
     bool operator ==(const student &param)
     {
-        if (id == param.id && cmp_chr_str(name, param.name) == true && cmp_chr_str(surname, param.surname) == true)
+        std::cout << id << '-' << param.id << std::endl;
+        if (id == param.id && strcmp(name, param.name) == 0 && strcmp(surname, param.surname) == 0)
             return true;
         return false;
     }
@@ -52,7 +55,7 @@ struct student
 
 void testLab3(MPI_Aint studentType, const std::vector<student> &input, student searchedStud, bool expectedFound)
 {
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_rank(MPI_COMM_WORLD, &procId);
     MPI_Status status;
     std::vector<student> localInput;
 
@@ -72,7 +75,7 @@ void testLab3(MPI_Aint studentType, const std::vector<student> &input, student s
     std::vector<int> founds;
     founds.resize(numProcs);
     MPI_Gather(&localFound, 1, MPI_INT, &founds[0], 1, MPI_INT, 0, MPI_COMM_WORLD);
-    if (rank == 0)
+    if (procId == 0)
     {
         for (int i = 0; i < numProcs; i++)
             if (founds[i] == true && expectedFound == true)
