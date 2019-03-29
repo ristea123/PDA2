@@ -82,7 +82,7 @@ void main(int argc, char *argv[])
     MPI_Type_commit(&studentType);
 
     std::vector<student> students;
-    students.reserve(5);
+    students.reserve(8);
 
     students.push_back(student(1, "Ristea1", "Stefan1"));
     students.push_back(student(2, "Ristea2", "Stefan2"));
