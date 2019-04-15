@@ -1,49 +1,32 @@
 #include <mpi.h>
 #include <iostream>
-#include <string>
+#include <array>
 #include <vector>
 
 int procId;
 int numProcs;
 
-struct student
+struct Student
 {
-    int id;
-    char name[10];
-    char surname[10];
-    student(int id, const std::string &name, const std::string &surname)
-    {
-        this->id = id;
-        memset(&this->name[0], 0, 10);
-        memset(&this->surname[0], 0, 10);
-        strcpy_s(this->name, name.c_str());
-        strcpy_s(this->surname, surname.c_str());
-    };
-    student() {};
+    int id = {0};
+    std::array<char, 10> name = {};
+    std::array<char, 10> surname = {};
 };
 
-inline bool operator==(const student& lhs, const student& rhs) 
+inline bool operator==(const Student& lhs, const Student& rhs)
 {
-    if (lhs.id == rhs.id && strcmp(lhs.name, rhs.name) == 0 && strcmp(lhs.surname, rhs.surname) == 0)
-        return true;
-    return false;
+    return((lhs.id == rhs.id && lhs.name == rhs.name && lhs.surname == rhs.surname) == 0);
 }
 
-void testLab3(const MPI_Aint &studentType, const std::vector<student> &input, const student &searchedStud, bool expectedFound)
+void testLab3(const MPI_Aint &StudentType, const std::vector<Student> &input, const Student &searchedStud, int expectedFound)
 {
     MPI_Comm_rank(MPI_COMM_WORLD, &procId);
-    std::vector<student> localInput;
+    std::vector<Student> localInput;
 
     int procChunkSize = input.size() / numProcs;
     localInput.resize(procChunkSize);
-    MPI_Scatter(&input[0], procChunkSize, studentType, &localInput[0], procChunkSize, studentType, 0, MPI_COMM_WORLD);
-
-    int localFound = false;
-    for (int i = 0; i < procChunkSize; i++)
-    {
-        if (searchedStud == localInput[i])
-            localFound = true;
-    }
+    MPI_Scatter(&input[0], procChunkSize, StudentType, &localInput[0], procChunkSize, StudentType, 0, MPI_COMM_WORLD);
+    int localFound = std::find(localInput.begin(), localInput.end(), searchedStud) != localInput.end() ? 1 : 0;
 
     std::vector<int> founds;
     founds.resize(numProcs);
@@ -52,13 +35,13 @@ void testLab3(const MPI_Aint &studentType, const std::vector<student> &input, co
     {
         for (int i = 0; i < numProcs; i++)
         {
-            if (founds[i] == true && expectedFound == true)
+            if (founds[i] == 1 && expectedFound == 1)
             {
                 std::cout << "SUCCESS" << std::endl;
                 return;
             }
         }
-        if (expectedFound == false)
+        if (expectedFound == 0)
         {
             std::cout << "SUCCESS" << std::endl;
         }
@@ -69,34 +52,35 @@ void testLab3(const MPI_Aint &studentType, const std::vector<student> &input, co
     }
 }
 
-void main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     int blocklengths[3] = { 1, 10, 10 };
     MPI_Datatype types[3] = { MPI_INT, MPI_CHAR, MPI_CHAR };
-    MPI_Aint displacements[3] = { offsetof(student, id), offsetof(student, name), offsetof(student, surname) };
-    MPI_Datatype studentType;
+    MPI_Aint offsets[3] = { offsetof(Student, id), offsetof(Student, name), offsetof(Student, surname) };
+    MPI_Datatype StudentType;
 
     MPI_Init(&argc, &argv);
-    MPI_Type_create_struct(3, blocklengths, displacements, types, &studentType);
+    MPI_Type_create_struct(3, blocklengths, offsets, types, &StudentType);
     MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
-    MPI_Type_commit(&studentType);
+    MPI_Type_commit(&StudentType);
 
-    std::vector<student> students;
-    students.reserve(8);
+    std::vector<Student> students = 
+    {
+        {1, {"Ristea1"}, {"Stefan1"}},
+        {2, {"Ristea2"}, {"Stefan2"}},
+        {3, {"Ristea3"}, {"Stefan3"}},
+        {4, {"Ristea45"}, {"Stefan45"}},
+        {5, {"Ristea6"}, {"Stefan6"}},
+        {6, {"Ristea7"}, {"Stefan8"}},
+        {7, {"Ristea9"}, {"Stefan9"}},
+        {8, {"Ristea10"}, {"Stefan10"}}
+    };
 
-    students.push_back(student(1, "Ristea1", "Stefan1"));
-    students.push_back(student(2, "Ristea2", "Stefan2"));
-    students.push_back(student(3, "Ristea3", "Stefan3"));
-    students.push_back(student(4, "Ristea45", "Stefan45"));
-    students.push_back(student(5, "Ristea6", "Stefan6"));
-    students.push_back(student(6, "Ristea7", "Stefan8"));
-    students.push_back(student(7, "Ristea9", "Stefan9"));
-    students.push_back(student(8, "Ristea10", "Stefan10"));
+    Student stud = {4, {"Ristea45"}, {"Stefan45"} };
+    Student stud1 = { 1, {"Ristea12"}, {"Stefan12"} };
 
-    student stud(4, "Ristea45", "Stefan45");
-    student stud1(1, "Ristea12", "Stefan12");
-
-    testLab3(studentType, students, stud, true);
-    testLab3(studentType, students, stud1, false);
+    testLab3(StudentType, students, stud, 1);
+    testLab3(StudentType, students, stud1, 0);
     MPI_Finalize();
+    return 0;
 }
