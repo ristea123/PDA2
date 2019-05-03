@@ -38,7 +38,7 @@ void testLab5_2(const Matrix <M,N> &input1, const Matrix <N,O> &input2,
     // Create memory buffers
     Buffer bufferA = Buffer(context, CL_MEM_READ_ONLY, input1.size() * input1[0].size() * sizeof(int));
     Buffer bufferB = Buffer(context, CL_MEM_READ_ONLY, input2.size() * input2[0].size() * sizeof(int));
-    Buffer bufferC = Buffer(context, CL_MEM_WRITE_ONLY, input1.size() * input2[0].size() * sizeof(int));
+    Buffer bufferC = Buffer(context, CL_MEM_READ_WRITE, input1.size() * input2[0].size() * sizeof(int));
     Buffer bufferK = Buffer(context, CL_MEM_READ_ONLY, sizeof(int));
 
     // Copy lists A and B to the memory buffers
@@ -46,6 +46,7 @@ void testLab5_2(const Matrix <M,N> &input1, const Matrix <N,O> &input2,
     queue.enqueueWriteBuffer(bufferB, CL_TRUE, 0, input2.size() * input2[0].size() * sizeof(int), &input2[0]);
 
     int k = input2.size();
+
     queue.enqueueWriteBuffer(bufferK, CL_TRUE, 0, sizeof(int), &k);
 
     // Set arguments to kernel//
@@ -56,13 +57,17 @@ void testLab5_2(const Matrix <M,N> &input1, const Matrix <N,O> &input2,
 
     queue.enqueueNDRangeKernel(kernel, NullRange, NDRange(input1.size(), input2[0].size()), NDRange(1, 1));
 
-    Matrix<M, O> result = { { {}, {}} };
-    queue.enqueueReadBuffer(bufferC, CL_TRUE, 0, 4 * sizeof(int), &result[0]);
+    Matrix<M, O> result = {};
+    queue.enqueueReadBuffer(bufferC, CL_TRUE, 0, M * O * sizeof(int), &result[0]);
 
     if (result == expectedResult)
         std::cout << "SUCCESS" << std::endl;
     else
         std::cout << "FAIL" << std::endl;
+
+    std::array<int, M * O> arr = {};
+    
+    queue.enqueueWriteBuffer(bufferC, CL_TRUE, 0, M * O * sizeof(int), &arr[0]);
 }
 
 int main() 
@@ -106,11 +111,55 @@ int main()
     } };
 
     Matrix<2, 4> expectedResult2 = { {
-    {58, 64, 1, 1},
-    {139, 154, 1, 1}
+    {58, 64, 70, 76},
+    {139, 154, 169, 184}
     } };
 
     testLab5_2(input3, input4, expectedResult2, context);
+
+    Matrix<1, 3> input5 = { {
+    {1,2,3}
+    } };
+
+    Matrix<3, 4> input6 = { {
+    {7,8,9,10},
+    {9,10,11,12},
+    {11,12,13,14}
+    } };
+
+    Matrix<1, 4> expectedResult3 = { {
+    {58, 64, 70, 76}
+    } };
+
+    testLab5_2(input5, input6, expectedResult3, context);
+
+    Matrix<1, 1> input7 = { {
+    {1}
+    } };
+
+    Matrix<1, 4> input8 = { {
+    {7,8,9,10}
+    } };
+
+    Matrix<1, 4> expectedResult4 = { {
+    {7, 8, 9, 10}
+    } };
+
+    testLab5_2(input7, input8, expectedResult4, context);
+
+    Matrix<1, 1> input9 = { {
+    {1}
+    } };
+
+    Matrix<1, 1> input10 = { {
+    {5}
+    } };
+
+    Matrix<1, 1> expectedResult5 = { {
+    {5}
+    } };
+
+    testLab5_2(input9, input10, expectedResult5, context);
 
     return 0;
 }
