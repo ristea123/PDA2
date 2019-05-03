@@ -24,8 +24,10 @@ std::string sourceCode(
 Program::Sources source(1, std::make_pair(sourceCode.c_str(), sourceCode.length() + 1));
 Program program;
 
-void testLab5_2(const Matrix <2,3> &input1, const Matrix <3,2> &input2, 
-                const Matrix <2,2> &expectedResult, const Context &context)
+
+template <std::size_t M, std::size_t N, std::size_t O>
+void testLab5_2(const Matrix <M,N> &input1, const Matrix <N,O> &input2, 
+                const Matrix <M,O> &expectedResult, const Context &context)
 {
     // Build program for these specific devices
     program.build(devices);
@@ -54,18 +56,26 @@ void testLab5_2(const Matrix <2,3> &input1, const Matrix <3,2> &input2,
 
     queue.enqueueNDRangeKernel(kernel, NullRange, NDRange(input1.size(), input2[0].size()), NDRange(1, 1));
 
-    Matrix<2, 2> result = { { {}, {}} };
+    Matrix<M, O> result = { { {}, {}} };
     queue.enqueueReadBuffer(bufferC, CL_TRUE, 0, 4 * sizeof(int), &result[0]);
 
     if (result == expectedResult)
-        std::cout << "SUCCESS";
+        std::cout << "SUCCESS" << std::endl;
     else
-        std::cout << "FAIL";
+        std::cout << "FAIL" << std::endl;
 }
 
 int main() 
 {
-    // Create the two input vectors
+    Platform::get(&platforms);
+    cps[0] = CL_CONTEXT_PLATFORM;
+    cps[1] = (cl_context_properties)(platforms[0])();
+    cps[2] = 0;
+    Context context(CL_DEVICE_TYPE_GPU, cps);
+    devices = context.getInfo<CL_CONTEXT_DEVICES>();
+    queue = CommandQueue(context, devices[0]);
+    program = Program(context, source);
+
     Matrix<2, 3> input1 = { {
     {1,2,3},
     {4,5,6}
@@ -82,16 +92,25 @@ int main()
     {139, 154}
     } };
 
-    Platform::get(&platforms);
-    cps[0] = CL_CONTEXT_PLATFORM;
-    cps[1] = (cl_context_properties)(platforms[0])();
-    cps[2] = 0;
-    Context context(CL_DEVICE_TYPE_GPU, cps);
-    devices = context.getInfo<CL_CONTEXT_DEVICES>();
-    queue = CommandQueue(context, devices[0]);
-    program = Program(context, source);
-
     testLab5_2(input1, input2, expectedResult, context);
+
+    Matrix<2, 3> input3 = { {
+    {1,2,3},
+    {4,5,6}
+    }};
+
+    Matrix<3, 4> input4 = { {
+    {7,8,9,10},
+    {9,10,11,12},
+    {11,12,13,14}
+    } };
+
+    Matrix<2, 4> expectedResult2 = { {
+    {58, 64, 1, 1},
+    {139, 154, 1, 1}
+    } };
+
+    testLab5_2(input3, input4, expectedResult2, context);
 
     return 0;
 }
